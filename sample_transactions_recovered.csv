@@ -1,0 +1,6 @@
+﻿Date,Account,Payee,Category,Amount,Note,Additional Fields,Transaction ID,Account ID,Category ID,Payee ID,Status Code,Type Code,Linked Account ID,Split Code,Raw Timestamp
+2004-12-01,Washington Mutual Checking,Employer,Wages and Salary:Net Pay,1500.00,,,1,1,118,1,0,1,0,0,1101877200
+2004-12-01,Washington Mutual Checking,Landlord,Bills:Rent,-800.00,,,3,1,26,2,0,2,0,0,1101877200
+2004-12-05,Washington Mutual Checking,BellSouth,Bills:Telephone,-30.00,Home phone bill,,4,1,28,3,0,2,0,0,1102222800
+2004-12-07,Washington Mutual Checking,Florida Power and Light,Bills:Electricity,-50.00,Electricity Bill,,5,1,17,4,0,2,0,0,1102395600
+2004-12-10,Washington Mutual Checking,,,-255.00,,,6,1,0,0,0,2,0,0,1102654800
