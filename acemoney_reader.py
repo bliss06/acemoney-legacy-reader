@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""AceMoney Classic legacy .MMW read-only viewer and CSV exporter, v1.3.
+"""AceMoney Classic legacy .MMW read-only viewer and CSV exporter, v1.4.
 
-Reverse-engineered from AceMoney v3.x sample.mmw and 2009/2010 user files. No AceMoney executables
+Reverse-engineered from AceMoney v3.x sample.mmw and 2005/2009/2010 user files. No AceMoney executables
 are launched and NO .MMW files are modified.
 
 Tested with a bundled demo file and multiple historical monthly files. Other versions, split transactions,
@@ -98,7 +98,7 @@ class Account:
 @dataclass
 class Transaction:
     id: int
-    status_code: int
+    number: str
     timestamp: int
     payee_id: int
     category_id: int
@@ -200,8 +200,12 @@ def load_mmw(path: str | Path) -> MMWBook:
 
     transactions = []
     for _ in range(r.count('transactions')):
+        # Transaction number is a variable-length CString, NOT a one-byte
+        # status code. Newer files usually encode an empty number as 00,
+        # while 2005 files contain 01 31 for '1', 02 31 30 for '10', etc.
+        # Reading only a byte silently corrupted every subsequent field.
         t = Transaction(
-            id=r.u32(), status_code=r.u8(), timestamp=r.u32(),
+            id=r.u32(), number=r.s(), timestamp=r.u32(),
             payee_id=r.u32(), category_id=r.u32(), account_id=r.u32(),
             linked_account_id=r.u32(), amount=r.f64(), split_code=r.u32(),
             transaction_type_code=r.u32(), fields=[r.s() for _ in range(5)]
@@ -310,10 +314,10 @@ def transaction_rows(book: MMWBook, hour_shift: float = 0):
             'Note': t.fields[0],
             'Additional Fields': ' | '.join(v for v in t.fields[1:] if v),
             'Transaction ID': t.id,
+            'Number': t.number,
             'Account ID': t.account_id,
             'Category ID': t.category_id,
             'Payee ID': t.payee_id,
-            'Status Code': t.status_code,
             'Type Code': t.transaction_type_code,
             'Linked Account ID': t.linked_account_id,
             'Split Code': t.split_code,
@@ -324,8 +328,8 @@ def transaction_rows(book: MMWBook, hour_shift: float = 0):
 # Column order for transaction exports, including files with no transactions.
 TRANSACTION_CSV_FIELDS = [
     'Date', 'Account', 'Payee', 'Category', 'Amount', 'Note',
-    'Additional Fields', 'Transaction ID', 'Account ID', 'Category ID',
-    'Payee ID', 'Status Code', 'Type Code', 'Linked Account ID',
+    'Additional Fields', 'Transaction ID', 'Number', 'Account ID', 'Category ID',
+    'Payee ID', 'Type Code', 'Linked Account ID',
     'Split Code', 'Raw Timestamp',
 ]
 
@@ -456,7 +460,7 @@ def make_gui(initial_path: str | None = None):
             self.tabs = ttk.Notebook(root)
             self.tabs.pack(fill='both', expand=True, padx=10, pady=7)
             self.views = {}
-            self.create_tab('Transactions', ['Date','Account','Payee','Category','Amount','Note','Additional Fields','Transaction ID'])
+            self.create_tab('Transactions', ['Date','Number','Account','Payee','Category','Amount','Note','Additional Fields','Transaction ID'])
             self.create_tab('Monthly summary', ['Month','Account','Income','Expenses','Net','Transactions'])
             self.create_tab('Scheduled', ['Next date','Account','Payee','Category','Amount','Note','Frequency code','ID'])
             self.create_tab('Accounts', ['ID','Account','Type','Description','Bank','Currency ID','Opening balance','Transactions','Calculated balance'])
@@ -488,7 +492,7 @@ def make_gui(initial_path: str | None = None):
                     w = 180
                 if col == 'Additional Fields':
                     w = 230
-                if col in ('ID','Transaction ID','Frequency code'):
+                if col in ('ID','Transaction ID','Frequency code', 'Number'):
                     w = 85
                 tree.heading(col, text=col)
                 tree.column(col, width=w, minwidth=65, anchor='e' if col in
